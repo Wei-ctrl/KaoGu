@@ -221,6 +221,28 @@ h1 {
   letter-spacing: -0.01em;
 }
 
+.sentence.long {
+  font-size: clamp(1.15rem, 3.2vw, 1.5rem);
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.q-tag {
+  margin-top: clamp(28px, 5vw, 44px);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.q-tag:empty { display: none; }
+.q-tag:not(:empty) ~ .sentence { margin-top: 12px; }
+
+.q-given {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.q-given:empty { display: none; }
+
 .blank {
   display: inline-block;
   min-width: 3.5em;
@@ -275,6 +297,10 @@ h1 {
 .feedback { margin-top: 28px; }
 .verdict { font-weight: 700; font-size: 1.1rem; }
 .explain { margin-top: 6px; color: var(--muted); }
+.terms { margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+.terms:empty { display: none; }
+.quiz[lang|="zh"] .explain,
+.review[lang|="zh"] .r-x { line-height: 1.7; }
 
 .next { margin-top: 28px; }
 

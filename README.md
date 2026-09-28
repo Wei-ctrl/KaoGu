@@ -5,7 +5,7 @@ A minimalist, responsive black-and-white study app.
 Subjects: Guowen, English Text, English Grammar, Maths, Physics, Chemistry.
 
 Every subject is multiple choice, one question at a time, 20 questions per day.
-English Grammar (tenses) is the first subject with content.
+English Grammar (tenses) and Chemistry (僑先部 Ch1–Ch2) have content.
 
 ## Adding questions
 
@@ -33,3 +33,23 @@ No build step. Open `index.html` in a browser, or serve the folder:
 ```sh
 python3 -m http.server 8000
 ```
+
+## Daily sets (Chemistry)
+
+Chemistry gets a new set of 20 questions each day:
+
+- `prompts/chemistry.md` — the question-engine prompt used to write each set.
+- `data/chemistry/<YYYY-MM-DD>.js` — one day's 20 questions, in the prompt's §7 JSON format.
+- `data/chemistry/index.js` — the list of available dates. The app opens the newest
+  set dated today or earlier (in the device's local time).
+
+To add a day: write `data/chemistry/<date>.js` (copy an existing file's first two
+lines, then paste the generated `{ "questions": [...] }`), add the date to
+`index.js`, and run:
+
+```sh
+node scripts/check-daily.js chemistry
+```
+
+It checks each set has 20 questions with options A–D, a valid answer, an
+explanation, no repeated ids across days, and no answer letter over 40%.

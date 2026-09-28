@@ -7,10 +7,13 @@
     { id: "english-grammar", name: "English Grammar", native: "英文 · 文法" },
     { id: "maths",           name: "Maths",           native: "數學" },
     { id: "physics",         name: "Physics",         native: "物理" },
-    { id: "chemistry",       name: "Chemistry",       native: "化學" }
+    { id: "chemistry",       name: "Chemistry",       native: "化學", lang: "zh-Hant" }
   ];
 
+  // Static sets: KAOGU_DATA[id] = [questions]. Daily sets: KAOGU_SETS[id] lists
+  // dates, and data/<id>/<date>.js registers KAOGU_DAILY[id][date] = { questions }.
   var DATA = window.KAOGU_DATA || {};
+  var SETS = window.KAOGU_SETS || {};
   var KEYS = ["A", "B", "C", "D", "E", "F"];
 
   var app = document.getElementById("app");
@@ -73,6 +76,62 @@
     show(view, subject.name, true);
   }
 
+  /* ---------- Daily sets ---------- */
+
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  // Newest date that is not in the future; falls back to the oldest set.
+  function pickDate(dates) {
+    var now = today();
+    var past = dates.filter(function (d) { return d <= now; });
+    return past.length ? past[past.length - 1] : dates[0];
+  }
+
+  function loadDaily(subject) {
+    var date = pickDate(SETS[subject.id]);
+    var daily = window.KAOGU_DAILY && window.KAOGU_DAILY[subject.id];
+    if (daily && daily[date]) return Promise.resolve({ date: date, questions: daily[date].questions });
+
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "data/" + subject.id + "/" + date + ".js";
+      s.onload = function () {
+        var set = window.KAOGU_DAILY && window.KAOGU_DAILY[subject.id] && window.KAOGU_DAILY[subject.id][date];
+        set ? resolve({ date: date, questions: set.questions }) : reject(new Error("empty set"));
+      };
+      s.onerror = function () { reject(new Error("load failed")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // Accept both the simple format ({ q, options: [], answer: 0, explain }) and
+  // the generator format from prompts/*.md ({ stem, options: {A..D}, answer: "A", ... }).
+  function normalize(item) {
+    if (!item.stem) return item;
+    var letters = Object.keys(item.options);
+    var options = letters.map(function (k) { return String(item.options[k]); });
+
+    // Worksheet style puts a shared unit only after the last option ("… (D) 6 克").
+    var unit = options[options.length - 1].match(/^[-\d.×⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+\s+(\S+)$/);
+    var numeric = /^[-\d.×⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+$/;
+    if (unit && options.slice(0, -1).every(function (o) { return numeric.test(o); })) {
+      options = options.map(function (o, i) { return i < options.length - 1 ? o + " " + unit[1] : o; });
+    }
+
+    return {
+      q: item.stem,
+      given: item.given,
+      tag: item.chapter,
+      options: options,
+      answer: letters.indexOf(item.answer),
+      explain: item.explanation,
+      terms: item.key_terms
+    };
+  }
+
   /* ---------- Quiz ---------- */
 
   // Render a sentence, turning each ___ into a blank. If `fill` is given
@@ -92,10 +151,19 @@
     return frag;
   }
 
-  function startQuiz(subject) {
-    var questions = DATA[subject.id];
-    var state = { index: 0, picks: [] };
-    renderQuestion(subject, questions, state);
+  function startQuiz(subject, questions, date) {
+    var state = { index: 0, picks: [], date: date };
+    renderQuestion(subject, questions.map(normalize), state);
+  }
+
+  function renderMessage(subject, text) {
+    var view = tpl("tpl-subject");
+    view.querySelector(".index").textContent = subject.native;
+    view.querySelector(".title").textContent = subject.name;
+    view.querySelector(".native").remove();
+    view.querySelector(".empty").textContent = text;
+    onKey = null;
+    show(view, subject.name, true);
   }
 
   function renderQuestion(subject, questions, state) {
@@ -111,6 +179,10 @@
     view.querySelector(".quiz-subject").textContent = subject.name;
     view.querySelector(".quiz-count").textContent = pad(state.index + 1) + " / " + pad(total);
     view.querySelector(".progress-bar").style.width = (state.index / total) * 100 + "%";
+    if (subject.lang) view.querySelector(".quiz").lang = subject.lang;
+    if (item.tag) view.querySelector(".q-tag").textContent = item.tag;
+    if (item.given) view.querySelector(".q-given").textContent = item.given;
+    if (item.q.length > 40) sentence.classList.add("long");
     sentence.appendChild(sentenceNodes(item.q));
 
     item.options.forEach(function (opt, i) {
@@ -144,6 +216,10 @@
       sentence.replaceChildren(sentenceNodes(item.q, item.options[item.answer]));
       feedback.querySelector(".verdict").textContent = right ? "Correct." : "Not quite.";
       feedback.querySelector(".explain").textContent = item.explain || "";
+      if (item.terms && item.terms.length) {
+        feedback.querySelector(".terms").textContent = item.terms
+          .map(function (t) { return t.zh + " " + t.en; }).join(" · ");
+      }
       feedback.hidden = false;
       nextBtn.hidden = false;
       document.querySelector(".progress-bar").style.width = ((state.index + 1) / total) * 100 + "%";
@@ -178,7 +254,9 @@
     var correct = questions.filter(function (q, i) { return state.picks[i] === q.answer; }).length;
     var ratio = correct / total;
 
-    view.querySelector(".index").textContent = subject.name + " · Today's set";
+    view.querySelector(".index").textContent = subject.name + " · " +
+      (state.date ? (state.date === today() ? "Today's set · " : "Latest set · ") + state.date : "Today's set");
+    if (subject.lang) view.querySelector(".review").lang = subject.lang;
     view.querySelector(".score").textContent = correct + " / " + total;
     view.querySelector(".score-note").textContent =
       ratio === 1 ? "Perfect. Every answer right." :
@@ -208,7 +286,9 @@
     if (misses) title.textContent = "Mistakes (" + misses + ")";
     else { title.remove(); review.remove(); }
 
-    view.querySelector(".retry").addEventListener("click", function () { startQuiz(subject); });
+    view.querySelector(".retry").addEventListener("click", function () {
+      startQuiz(subject, questions, state.date);
+    });
     onKey = null;
     show(view, subject.name + " results", true);
   }
@@ -219,7 +299,14 @@
     var id = location.hash.replace(/^#\/?/, "");
     var subject = SUBJECTS.find(function (s) { return s.id === id; });
     if (!subject) renderHome();
-    else if (DATA[subject.id] && DATA[subject.id].length) startQuiz(subject);
+    else if (SETS[subject.id] && SETS[subject.id].length) {
+      loadDaily(subject).then(function (set) {
+        if (location.hash.replace(/^#\/?/, "") === subject.id) startQuiz(subject, set.questions, set.date);
+      }, function () {
+        renderMessage(subject, "Couldn't load today's questions. Check your connection and try again.");
+      });
+    }
+    else if (DATA[subject.id] && DATA[subject.id].length) startQuiz(subject, DATA[subject.id]);
     else renderComingSoon(subject);
   }
 
