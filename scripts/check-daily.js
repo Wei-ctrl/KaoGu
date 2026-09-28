@@ -52,6 +52,10 @@ for (const date of dates) {
     if (!letters.hasOwnProperty(q.answer)) fail(`${where}: answer must be one of A–D`);
     else letters[q.answer]++;
     if (!q.explanation) fail(`${where}: missing explanation`);
+    const blanks = (q.stem || "").split("___").length - 1;
+    if (blanks) Object.values(q.options || {}).forEach((o) => {
+      if (String(o).split(" … ").length !== blanks) fail(`${where}: option "${o}" doesn't fill ${blanks} blank(s)`);
+    });
     if (/「?(不是|錯誤|不能|有誤)」?/.test(q.stem) && !/「(不是|錯誤|不能|有誤)」/.test(q.stem)) fail(`${where}: negative word must be wrapped in 「」`);
   });
 

@@ -182,7 +182,7 @@
     if (subject.lang) view.querySelector(".quiz").lang = subject.lang;
     if (item.tag) view.querySelector(".q-tag").textContent = item.tag;
     if (item.given) view.querySelector(".q-given").textContent = item.given;
-    if (item.q.length > 40) sentence.classList.add("long");
+    if (item.q.length > (subject.lang ? 40 : 90)) sentence.classList.add("long");
     sentence.appendChild(sentenceNodes(item.q));
 
     item.options.forEach(function (opt, i) {
