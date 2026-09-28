@@ -14,7 +14,7 @@
   // dates, and data/<id>/<date>.js registers KAOGU_DAILY[id][date] = { questions }.
   var DATA = window.KAOGU_DATA || {};
   var SETS = window.KAOGU_SETS || {};
-  var KEYS = ["A", "B", "C", "D", "E", "F"];
+  var KEYS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
   var app = document.getElementById("app");
   var backBtn = document.getElementById("back");
@@ -128,7 +128,8 @@
       options: options,
       answer: letters.indexOf(item.answer),
       explain: item.explanation,
-      terms: item.key_terms
+      terms: item.key_terms,
+      underline: item.underline
     };
   }
 
@@ -148,6 +149,25 @@
         frag.appendChild(b);
       }
     });
+    return frag;
+  }
+
+  // Error-picking sentences: underline each option's text and label it with its letter.
+  function markedNodes(text, parts) {
+    var frag = document.createDocumentFragment();
+    var hits = parts.map(function (p, i) { return { at: text.indexOf(p), text: p, key: KEYS[i] }; })
+      .filter(function (h) { return h.at >= 0; })
+      .sort(function (a, b) { return a.at - b.at; });
+    var pos = 0;
+    hits.forEach(function (h) {
+      if (h.at < pos) return;
+      frag.appendChild(document.createTextNode(text.slice(pos, h.at)));
+      var u = el("u", "part", h.text);
+      u.appendChild(el("sup", null, h.key));
+      frag.appendChild(u);
+      pos = h.at + h.text.length;
+    });
+    frag.appendChild(document.createTextNode(text.slice(pos)));
     return frag;
   }
 
@@ -183,7 +203,11 @@
     if (item.tag) view.querySelector(".q-tag").textContent = item.tag;
     if (item.given) view.querySelector(".q-given").textContent = item.given;
     if (item.q.length > (subject.lang ? 40 : 90)) sentence.classList.add("long");
-    sentence.appendChild(sentenceNodes(item.q));
+    sentence.appendChild(item.underline ? markedNodes(item.q, item.options) : sentenceNodes(item.q));
+    // Word banks (more than 4 short choices) sit in a compact grid.
+    if (item.options.length > 4 && item.options.every(function (o) { return o.length <= 24; })) {
+      optionsBox.classList.add("bank");
+    }
 
     item.options.forEach(function (opt, i) {
       var b = el("button", "option");
@@ -213,7 +237,7 @@
         else b.classList.add("is-dim");
       });
 
-      sentence.replaceChildren(sentenceNodes(item.q, item.options[item.answer]));
+      if (!item.underline) sentence.replaceChildren(sentenceNodes(item.q, item.options[item.answer]));
       feedback.querySelector(".verdict").textContent = right ? "Correct." : "Not quite.";
       feedback.querySelector(".explain").textContent = item.explain || "";
       if (item.terms && item.terms.length) {

@@ -33,7 +33,8 @@ for (const date of dates) {
   if (!set || !Array.isArray(set.questions)) { fail(`${date}: file does not register a questions array`); continue; }
 
   const qs = set.questions;
-  if (qs.length !== 20) fail(`${date}: expected 20 questions, found ${qs.length}`);
+  const expected = subject === "english-text" ? 22 : 20;
+  if (qs.length !== expected) fail(`${date}: expected ${expected} questions, found ${qs.length}`);
   const letters = { A: 0, B: 0, C: 0, D: 0 };
 
   qs.forEach((q, i) => {
@@ -46,15 +47,20 @@ for (const date of dates) {
     else if (seenStems.has(q.stem)) fail(`${where}: same stem as ${seenStems.get(q.stem)}`);
     else seenStems.set(q.stem, where);
     const keys = Object.keys(q.options || {});
-    if (keys.join() !== "A,B,C,D") fail(`${where}: options must be exactly A–D`);
+    // A–D normally; word-bank sections may use up to 10 choices (A–J).
+    if (keys.length < 4 || keys.length > 10 || keys.join() !== "ABCDEFGHIJ".slice(0, keys.length).split("").join())
+      fail(`${where}: options must be lettered from A (4–10 choices)`);
     if (keys.some((k) => !String(q.options[k]).trim())) fail(`${where}: empty option`);
     if (new Set(Object.values(q.options || {})).size !== keys.length) fail(`${where}: duplicate options`);
-    if (!letters.hasOwnProperty(q.answer)) fail(`${where}: answer must be one of A–D`);
-    else letters[q.answer]++;
+    if (!keys.includes(q.answer)) fail(`${where}: answer must be one of the option letters`);
+    else letters[q.answer] = (letters[q.answer] || 0) + 1;
     if (!q.explanation) fail(`${where}: missing explanation`);
     const blanks = (q.stem || "").split("___").length - 1;
     if (blanks) Object.values(q.options || {}).forEach((o) => {
       if (String(o).split(" … ").length !== blanks) fail(`${where}: option "${o}" doesn't fill ${blanks} blank(s)`);
+    });
+    if (q.underline) Object.values(q.options || {}).forEach((o) => {
+      if (q.stem.split(o).length !== 2) fail(`${where}: underlined part "${o}" must appear exactly once in the stem`);
     });
     if (/「?(不是|錯誤|不能|有誤)」?/.test(q.stem) && !/「(不是|錯誤|不能|有誤)」/.test(q.stem)) fail(`${where}: negative word must be wrapped in 「」`);
   });

@@ -250,7 +250,14 @@ h1 {
   line-height: 1.1;
   text-align: center;
 }
-.blank.filled { min-width: 0; padding: 0 2px; }
+.blank.filled {
+  display: inline;
+  min-width: 0;
+  border-bottom: 0;
+  text-align: left;
+  text-decoration: underline 2px;
+  text-underline-offset: 5px;
+}
 
 .options { display: grid; gap: 10px; }
 
@@ -278,6 +285,20 @@ h1 {
   outline: none;
 }
 .option:disabled { cursor: default; }
+
+.options.bank { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.options.bank .option { min-height: 48px; padding: 10px 14px; gap: 10px; font-size: 1rem; }
+
+.sentence .part {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+.sentence .part sup {
+  font-size: 0.55em;
+  font-weight: 700;
+  margin-left: 2px;
+  color: var(--muted);
+}
 
 .option-key {
   flex: none;
