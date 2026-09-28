@@ -350,3 +350,72 @@ h1 {
 @media (max-width: 560px) {
   .next, .actions .btn { width: 100%; }
 }
+
+/* Maths: figures, multi-select, fill-in slots */
+.q-figure { margin: 0 0 24px; color: var(--fg); }
+.q-figure svg { display: block; width: 100%; max-width: 420px; height: auto; }
+.q-figure .axis { stroke: currentColor; stroke-width: 1.2; }
+.q-figure .grid { stroke: currentColor; stroke-opacity: 0.12; }
+.q-figure .curve { stroke: currentColor; stroke-width: 2.4; fill: none; }
+.q-figure .dot { fill: currentColor; }
+.q-figure .open { fill: var(--bg); stroke: currentColor; stroke-width: 2; }
+.q-figure text { fill: currentColor; font-size: 12px; font-family: var(--font); }
+
+.q-hint { margin: -12px 0 16px; font-size: 0.9rem; color: var(--muted); }
+.q-hint:empty { display: none; }
+
+.option.is-selected { background: var(--fg); color: var(--bg); }
+.option .option-mark { font-size: 0.85rem; }
+
+.check { margin-top: 20px; }
+
+.slot-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.slot {
+  position: relative;
+  width: 56px;
+  height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.slot.is-active { outline: 2px solid var(--fg); outline-offset: 2px; }
+.slot-char { font-size: 1.6rem; font-weight: 700; min-height: 1.2em; }
+.slot-num { font-size: 0.7rem; color: var(--muted); }
+.slot.is-ok { background: var(--fg); color: var(--bg); }
+.slot.is-ok .slot-num { color: inherit; opacity: 0.7; }
+.slot.is-bad { border-style: dashed; }
+.slot.is-bad .slot-char { text-decoration: line-through; }
+.slot-fix { position: absolute; top: -10px; right: -8px; padding: 0 4px; font-size: 0.8rem; font-weight: 700; background: var(--fg); color: var(--bg); }
+
+.keypad {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 320px;
+}
+.key {
+  min-height: 52px;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.key:active { background: var(--fg); color: var(--bg); }
+
+.review .r-tag { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+.katex { font-size: 1.05em; }
+.key-word u { text-underline-offset: 3px; }
+.option.is-missed { border-width: 3px; font-weight: 600; }

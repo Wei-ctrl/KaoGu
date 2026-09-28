@@ -33,27 +33,48 @@ for (const date of dates) {
   if (!set || !Array.isArray(set.questions)) { fail(`${date}: file does not register a questions array`); continue; }
 
   const qs = set.questions;
-  const expected = subject === "english-text" ? 22 : 20;
+  const expected = { "english-text": 22, maths: 24 }[subject] || 20;
   if (qs.length !== expected) fail(`${date}: expected ${expected} questions, found ${qs.length}`);
-  const letters = { A: 0, B: 0, C: 0, D: 0 };
+  const letters_ = {};
+  let singles = 0;
 
   qs.forEach((q, i) => {
     const where = `${date} #${i + 1} (${q.id})`;
     if (!q.id) fail(`${where}: missing id`);
     else if (seenIds.has(q.id)) fail(`${where}: id also used on ${seenIds.get(q.id)}`);
     else seenIds.set(q.id, date);
-    if (!["single_choice", "count_choice"].includes(q.type)) fail(`${where}: type must be single_choice or count_choice (app is multiple choice only)`);
     if (!q.stem) fail(`${where}: missing stem`);
     else if (seenStems.has(q.stem)) fail(`${where}: same stem as ${seenStems.get(q.stem)}`);
     else seenStems.set(q.stem, where);
     const keys = Object.keys(q.options || {});
-    // A–D normally; word-bank sections may use up to 10 choices (A–J).
-    if (keys.length < 4 || keys.length > 10 || keys.join() !== "ABCDEFGHIJ".slice(0, keys.length).split("").join())
-      fail(`${where}: options must be lettered from A (4–10 choices)`);
-    if (keys.some((k) => !String(q.options[k]).trim())) fail(`${where}: empty option`);
-    if (new Set(Object.values(q.options || {})).size !== keys.length) fail(`${where}: duplicate options`);
-    if (!keys.includes(q.answer)) fail(`${where}: answer must be one of the option letters`);
-    else letters[q.answer] = (letters[q.answer] || 0) + 1;
+    if (q.type === "fill_slots") {
+      // 選填: numbered one-character slots, each shown as \boxed{n} in the stem.
+      if (q.options) fail(`${where}: fill_slots questions have no options`);
+      if (!Array.isArray(q.slots) || !q.slots.length) fail(`${where}: fill_slots needs a slots array`);
+      else q.slots.forEach((sl) => {
+        if (!/^[0-9-]$/.test(String(sl.v))) fail(`${where}: slot <${sl.n}.> must hold one digit or "-"`);
+        if (!q.stem.includes(`\\boxed{${sl.n}}`)) fail(`${where}: stem is missing \\boxed{${sl.n}}`);
+      });
+    } else {
+      // A–D normally; word banks up to A–J; maths papers number options (1)–(5).
+      const letters = "ABCDEFGHIJ".slice(0, keys.length).split("").join();
+      const digits = "123456789".slice(0, keys.length).split("").join();
+      if (keys.length < 4 || keys.length > 10 || (keys.join() !== letters && keys.join() !== digits))
+        fail(`${where}: options must be lettered from A or numbered from 1 (4–10 choices)`);
+      if (keys.some((k) => !String(q.options[k]).trim())) fail(`${where}: empty option`);
+      if (new Set(Object.values(q.options || {})).size !== keys.length) fail(`${where}: duplicate options`);
+      if (q.type === "multi_choice") {
+        if (!Array.isArray(q.answer) || !q.answer.length || q.answer.some((k) => !keys.includes(k)))
+          fail(`${where}: multi_choice answer must be a non-empty array of option keys`);
+      } else if (!["single_choice", "count_choice"].includes(q.type)) {
+        fail(`${where}: unknown type ${q.type}`);
+      } else if (!keys.includes(q.answer)) {
+        fail(`${where}: answer must be one of the option keys`);
+      } else {
+        letters_[q.answer] = (letters_[q.answer] || 0) + 1;
+        singles++;
+      }
+    }
     if (!q.explanation) fail(`${where}: missing explanation`);
     const blanks = (q.stem || "").split("___").length - 1;
     if (blanks) Object.values(q.options || {}).forEach((o) => {
@@ -65,9 +86,9 @@ for (const date of dates) {
     if (/「?(不是|錯誤|不能|有誤)」?/.test(q.stem) && !/「(不是|錯誤|不能|有誤)」/.test(q.stem)) fail(`${where}: negative word must be wrapped in 「」`);
   });
 
-  const max = Math.max(...Object.values(letters));
-  if (qs.length && max / qs.length > 0.4) fail(`${date}: one answer letter is over 40% (${JSON.stringify(letters)})`);
-  console.log(`${date}: ${qs.length} questions, answers ${JSON.stringify(letters)}`);
+  const max = Math.max(0, ...Object.values(letters_));
+  if (singles && max / singles > 0.4) fail(`${date}: one answer key is over 40% of single-answer questions (${JSON.stringify(letters_)})`);
+  console.log(`${date}: ${qs.length} questions, single answers ${JSON.stringify(letters_)}`);
 }
 
 if (errors) { console.error(`\n${errors} problem(s) found.`); process.exit(1); }

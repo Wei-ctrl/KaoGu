@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
   <title>KaoGu</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -42,7 +43,27 @@
       <p class="q-tag"></p>
       <p class="q-given"></p>
       <p class="sentence"></p>
+      <figure class="q-figure" hidden></figure>
+      <p class="q-hint"></p>
       <div class="options" role="group" aria-label="Answer choices"></div>
+      <div class="slots" hidden>
+        <div class="slot-row"></div>
+        <div class="keypad">
+          <button class="key" type="button" data-key="1">1</button>
+          <button class="key" type="button" data-key="2">2</button>
+          <button class="key" type="button" data-key="3">3</button>
+          <button class="key" type="button" data-key="4">4</button>
+          <button class="key" type="button" data-key="5">5</button>
+          <button class="key" type="button" data-key="6">6</button>
+          <button class="key" type="button" data-key="7">7</button>
+          <button class="key" type="button" data-key="8">8</button>
+          <button class="key" type="button" data-key="9">9</button>
+          <button class="key" type="button" data-key="-">−</button>
+          <button class="key" type="button" data-key="0">0</button>
+          <button class="key" type="button" data-key="back" aria-label="Delete">⌫</button>
+        </div>
+      </div>
+      <button class="btn btn-primary check" type="button" hidden>Check</button>
       <div class="feedback" aria-live="polite" hidden>
         <p class="verdict"></p>
         <p class="explain"></p>
@@ -66,6 +87,9 @@
     </section>
   </template>
 
+  <script src="vendor/katex/katex.min.js"></script>
+  <script src="vendor/katex/contrib/auto-render.min.js"></script>
+  <script src="data/maths/index.js"></script>
   <script src="data/english-text/index.js"></script>
   <script src="data/english-grammar/index.js"></script>
   <script src="data/chemistry/index.js"></script>

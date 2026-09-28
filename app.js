@@ -5,7 +5,7 @@
     { id: "guowen",          name: "Guowen",          native: "國文" },
     { id: "english-text",    name: "English Text",    native: "英文 · 閱讀" },
     { id: "english-grammar", name: "English Grammar", native: "英文 · 文法" },
-    { id: "maths",           name: "Maths",           native: "數學" },
+    { id: "maths",           name: "Maths",           native: "數學", math: true },
     { id: "physics",         name: "Physics",         native: "物理" },
     { id: "chemistry",       name: "Chemistry",       native: "化學", lang: "zh-Hant" }
   ];
@@ -109,40 +109,105 @@
 
   // Accept both the simple format ({ q, options: [], answer: 0, explain }) and
   // the generator format from prompts/*.md ({ stem, options: {A..D}, answer: "A", ... }).
+  // Types: single_choice / count_choice (one answer), multi_choice (answer is an
+  // array of keys), fill_slots (answer is `slots`: [{ n, v }] one character each).
   function normalize(item) {
-    if (!item.stem) return item;
-    var letters = Object.keys(item.options);
-    var options = letters.map(function (k) { return String(item.options[k]); });
+    if (item.normalized) return item;
+    if (!item.stem) {
+      return Object.assign({}, item, { normalized: true, type: "single_choice",
+        keys: KEYS.slice(0, item.options.length) });
+    }
+    var keys = Object.keys(item.options || {});
+    var options = keys.map(function (k) { return String(item.options[k]); });
 
     // Worksheet style puts a shared unit only after the last option ("… (D) 6 克").
-    var unit = options[options.length - 1].match(/^[-\d.×⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+\s+(\S+)$/);
+    var unit = options.length && options[options.length - 1].match(/^[-\d.×⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+\s+(\S+)$/);
     var numeric = /^[-\d.×⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+$/;
     if (unit && options.slice(0, -1).every(function (o) { return numeric.test(o); })) {
       options = options.map(function (o, i) { return i < options.length - 1 ? o + " " + unit[1] : o; });
     }
 
+    var type = item.type === "multi_choice" || item.type === "fill_slots" ? item.type : "single_choice";
+    var answer = type === "multi_choice"
+      ? item.answer.map(function (k) { return keys.indexOf(k); }).sort()
+      : type === "fill_slots" ? null : keys.indexOf(item.answer);
+
     return {
+      normalized: true,
+      type: type,
       q: item.stem,
       given: item.given,
-      tag: item.chapter,
+      tag: item.chapter + (item.number ? " · " + item.number : ""),
+      keys: keys,
       options: options,
-      answer: letters.indexOf(item.answer),
+      answer: answer,
+      slots: item.slots,
+      figure: item.figure,
+      points: item.points,
       explain: item.explanation,
       terms: item.key_terms,
       underline: item.underline
     };
   }
 
+  function label(item, i) {
+    return /^\d+$/.test(item.keys[i]) ? "(" + item.keys[i] + ")" : item.keys[i];
+  }
+
+  // Render $…$ maths with KaTeX when it has loaded; plain text otherwise.
+  function typeset(node) {
+    if (window.renderMathInElement) {
+      window.renderMathInElement(node, {
+        delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
+        throwOnError: false
+      });
+    }
+  }
+
+  function isRight(item, pick) {
+    if (pick == null) return false;
+    if (item.type === "multi_choice") return pick.join() === item.answer.join();
+    if (item.type === "fill_slots") return item.slots.every(function (s, i) { return pick[i] === s.v; });
+    return pick === item.answer;
+  }
+
+  function answerText(item, pick) {
+    if (item.type === "multi_choice") {
+      return pick.length ? pick.map(function (i) { return label(item, i); }).join(" ") : "(none)";
+    }
+    if (item.type === "fill_slots") {
+      return item.slots.map(function (s, i) { return "<" + s.n + ".> " + (pick[i] || "·"); }).join("  ");
+    }
+    return label(item, pick) + " " + item.options[pick];
+  }
+
+  function correctText(item) {
+    if (item.type === "multi_choice") return answerText(item, item.answer);
+    if (item.type === "fill_slots") return answerText(item, item.slots.map(function (s) { return s.v; }));
+    return label(item, item.answer) + " " + item.options[item.answer];
+  }
+
   /* ---------- Quiz ---------- */
 
   // Render a sentence, turning each ___ into a blank. If `fill` is given
   // (e.g. "drinks … is drinking"), its parts are written into the blanks.
+  // **word** in a stem becomes bold + underlined (e.g. **correct** / **incorrect**).
+  function richText(text) {
+    var frag = document.createDocumentFragment();
+    text.split("**").forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2) { var b = el("strong", "key-word"); b.appendChild(el("u", null, part)); frag.appendChild(b); }
+      else frag.appendChild(document.createTextNode(part));
+    });
+    return frag;
+  }
+
   function sentenceNodes(q, fill) {
     var parts = q.split("___");
     var answers = fill ? fill.split(" … ") : [];
     var frag = document.createDocumentFragment();
     parts.forEach(function (text, i) {
-      frag.appendChild(document.createTextNode(text));
+      frag.appendChild(richText(text));
       if (i < parts.length - 1) {
         var b = el("span", "blank" + (fill ? " filled" : ""), fill ? answers[i] : "");
         if (!fill) b.setAttribute("aria-label", "blank");
@@ -153,9 +218,9 @@
   }
 
   // Error-picking sentences: underline each option's text and label it with its letter.
-  function markedNodes(text, parts) {
+  function markedNodes(text, parts, keys) {
     var frag = document.createDocumentFragment();
-    var hits = parts.map(function (p, i) { return { at: text.indexOf(p), text: p, key: KEYS[i] }; })
+    var hits = parts.map(function (p, i) { return { at: text.indexOf(p), text: p, key: keys[i] }; })
       .filter(function (h) { return h.at >= 0; })
       .sort(function (a, b) { return a.at - b.at; });
     var pos = 0;
@@ -192,9 +257,15 @@
     var view = tpl("tpl-quiz");
     var sentence = view.querySelector(".sentence");
     var optionsBox = view.querySelector(".options");
+    var slotsBox = view.querySelector(".slots");
     var feedback = view.querySelector(".feedback");
+    var checkBtn = view.querySelector(".check");
     var nextBtn = view.querySelector(".next");
     var buttons = [];
+    var selected = [];           // multi_choice: chosen option indexes
+    var chars = [];              // fill_slots: typed characters
+    var cursor = 0;              // fill_slots: active slot
+    var boxes = [];
 
     view.querySelector(".quiz-subject").textContent = subject.name;
     view.querySelector(".quiz-count").textContent = pad(state.index + 1) + " / " + pad(total);
@@ -202,8 +273,14 @@
     if (subject.lang) view.querySelector(".quiz").lang = subject.lang;
     if (item.tag) view.querySelector(".q-tag").textContent = item.tag;
     if (item.given) view.querySelector(".q-given").textContent = item.given;
-    if (item.q.length > (subject.lang ? 40 : 90)) sentence.classList.add("long");
-    sentence.appendChild(item.underline ? markedNodes(item.q, item.options) : sentenceNodes(item.q));
+    if (subject.math || item.q.length > (subject.lang ? 40 : 90)) sentence.classList.add("long");
+    sentence.appendChild(item.underline ? markedNodes(item.q, item.options, item.keys) : sentenceNodes(item.q));
+    if (item.figure) {
+      var fig = view.querySelector(".q-figure");
+      fig.innerHTML = item.figure;   // trusted SVG from the repo's data files
+      fig.hidden = false;
+    }
+
     // Word banks (more than 4 short choices) sit in a compact grid.
     if (item.options.length > 4 && item.options.every(function (o) { return o.length <= 24; })) {
       optionsBox.classList.add("bank");
@@ -212,39 +289,124 @@
     item.options.forEach(function (opt, i) {
       var b = el("button", "option");
       b.type = "button";
-      b.appendChild(el("span", "option-key", KEYS[i]));
+      b.appendChild(el("span", "option-key", label(item, i)));
       b.appendChild(el("span", "option-text", opt));
       b.appendChild(el("span", "option-mark"));
-      b.addEventListener("click", function () { pick(i); });
+      b.addEventListener("click", function () { choose(i); });
       buttons.push(b);
       optionsBox.appendChild(b);
     });
 
+    if (item.type === "multi_choice") {
+      view.querySelector(".q-hint").textContent = "Select every correct option, then Check.";
+      checkBtn.hidden = false;
+    }
+
+    if (item.type === "fill_slots") {
+      view.querySelector(".q-hint").textContent = "Fill each numbered slot with one digit or a minus sign, then Check.";
+      optionsBox.remove();
+      slotsBox.hidden = false;
+      checkBtn.hidden = false;
+      var row = slotsBox.querySelector(".slot-row");
+      item.slots.forEach(function (s, i) {
+        var box = el("button", "slot");
+        box.type = "button";
+        box.appendChild(el("span", "slot-char"));
+        box.appendChild(el("span", "slot-num", "<" + s.n + ".>"));
+        box.addEventListener("click", function () { cursor = i; paint(); });
+        boxes.push(box);
+        row.appendChild(box);
+      });
+      slotsBox.querySelectorAll(".key").forEach(function (k) {
+        k.addEventListener("click", function () { type(k.dataset.key); });
+      });
+      paint();
+    }
+
+    function paint() {
+      boxes.forEach(function (box, i) {
+        box.querySelector(".slot-char").textContent = chars[i] || "";
+        box.classList.toggle("is-active", i === cursor && !answered());
+      });
+    }
+
+    function type(k) {
+      if (answered()) return;
+      if (k === "back") {
+        if (!chars[cursor] && cursor > 0) cursor -= 1;
+        chars[cursor] = "";
+      } else {
+        chars[cursor] = k;
+        if (cursor < item.slots.length - 1) cursor += 1;
+      }
+      paint();
+    }
+
+    function answered() { return state.picks[state.index] != null; }
+
     var isLast = state.index === total - 1;
     nextBtn.textContent = isLast ? "See results" : "Next";
     nextBtn.addEventListener("click", next);
+    checkBtn.addEventListener("click", check);
 
-    function pick(i) {
-      if (state.picks[state.index] != null) return;
-      state.picks[state.index] = i;
-      var right = i === item.answer;
+    function choose(i) {
+      if (answered()) return;
+      if (item.type === "multi_choice") {
+        var at = selected.indexOf(i);
+        if (at >= 0) selected.splice(at, 1); else selected.push(i);
+        buttons[i].classList.toggle("is-selected", at < 0);
+        buttons[i].setAttribute("aria-pressed", at < 0);
+        return;
+      }
+      finish(i);
+    }
 
-      buttons.forEach(function (b, j) {
-        b.disabled = true;
-        var mark = b.querySelector(".option-mark");
-        if (j === item.answer) { b.classList.add("is-correct"); mark.textContent = "✓"; }
-        else if (j === i) { b.classList.add("is-wrong"); mark.textContent = "✕"; }
-        else b.classList.add("is-dim");
-      });
+    function check() {
+      if (answered()) return;
+      if (item.type === "multi_choice") finish(selected.slice().sort());
+      else finish(item.slots.map(function (s, i) { return chars[i] || ""; }));
+    }
 
-      if (!item.underline) sentence.replaceChildren(sentenceNodes(item.q, item.options[item.answer]));
-      feedback.querySelector(".verdict").textContent = right ? "Correct." : "Not quite.";
+    function finish(pick) {
+      state.picks[state.index] = pick;
+      var right = isRight(item, pick);
+      checkBtn.hidden = true;
+
+      if (item.type === "fill_slots") {
+        boxes.forEach(function (box, i) {
+          box.disabled = true;
+          var ok = pick[i] === item.slots[i].v;
+          box.classList.add(ok ? "is-ok" : "is-bad");
+          if (!ok) box.appendChild(el("span", "slot-fix", item.slots[i].v));
+        });
+        slotsBox.querySelector(".keypad").hidden = true;
+        paint();
+      } else {
+        var chosen = item.type === "multi_choice" ? pick : [pick];
+        var correct = item.type === "multi_choice" ? item.answer : [item.answer];
+        buttons.forEach(function (b, j) {
+          b.disabled = true;
+          b.classList.remove("is-selected");
+          var mark = b.querySelector(".option-mark");
+          var isAns = correct.indexOf(j) >= 0, isPick = chosen.indexOf(j) >= 0;
+          if (isAns) { b.classList.add(isPick ? "is-correct" : "is-missed"); mark.textContent = isPick ? "✓" : "missed"; }
+          else if (isPick) { b.classList.add("is-wrong"); mark.textContent = "✕"; }
+          else b.classList.add("is-dim");
+        });
+        if (!item.underline && item.q.indexOf("___") >= 0 && item.type !== "multi_choice") {
+          sentence.replaceChildren(sentenceNodes(item.q, item.options[item.answer]));
+        }
+      }
+
+      feedback.querySelector(".verdict").textContent = right ? "Correct." :
+        item.type === "single_choice" ? "Not quite." : "Not quite. Answer: " + correctText(item);
       feedback.querySelector(".explain").textContent = item.explain || "";
       if (item.terms && item.terms.length) {
         feedback.querySelector(".terms").textContent = item.terms
           .map(function (t) { return t.zh + " " + t.en; }).join(" · ");
       }
       feedback.hidden = false;
+      if (subject.math) typeset(feedback);
       nextBtn.hidden = false;
       document.querySelector(".progress-bar").style.width = ((state.index + 1) / total) * 100 + "%";
       nextBtn.focus({ preventScroll: true });
@@ -258,11 +420,19 @@
     }
 
     onKey = function (e) {
-      var answered = state.picks[state.index] != null;
-      if (!answered) {
-        var k = KEYS.indexOf(e.key.toUpperCase());
-        if (k < 0) k = parseInt(e.key, 10) - 1;
-        if (k >= 0 && k < item.options.length) { e.preventDefault(); pick(k); }
+      if (!answered()) {
+        if (item.type === "fill_slots") {
+          if (/^[0-9]$/.test(e.key) || e.key === "-") { e.preventDefault(); type(e.key); }
+          else if (e.key === "Backspace") { e.preventDefault(); type("back"); }
+          else if (e.key === "ArrowLeft") { cursor = Math.max(0, cursor - 1); paint(); }
+          else if (e.key === "ArrowRight") { cursor = Math.min(item.slots.length - 1, cursor + 1); paint(); }
+          else if (e.key === "Enter") { e.preventDefault(); check(); }
+          return;
+        }
+        if (e.key === "Enter" && item.type === "multi_choice") { e.preventDefault(); check(); return; }
+        var k = item.keys.indexOf(e.key.toUpperCase());
+        if (k < 0 && /^\d$/.test(e.key) && !/^\d+$/.test(item.keys[0])) k = parseInt(e.key, 10) - 1;
+        if (k >= 0 && k < item.options.length) { e.preventDefault(); choose(k); }
       } else if (e.key === "Enter" && document.activeElement !== nextBtn) {
         e.preventDefault();
         next();
@@ -270,36 +440,46 @@
     };
 
     show(view, subject.name, true);
+    if (subject.math) typeset(app);
   }
 
   function renderResults(subject, questions, state) {
     var view = tpl("tpl-results");
     var total = questions.length;
-    var correct = questions.filter(function (q, i) { return state.picks[i] === q.answer; }).length;
+    var correct = questions.filter(function (q, i) { return isRight(q, state.picks[i]); }).length;
     var ratio = correct / total;
+    var hasPoints = questions.every(function (q) { return q.points; });
 
     view.querySelector(".index").textContent = subject.name + " · " +
       (state.date ? (state.date === today() ? "Today's set · " : "Latest set · ") + state.date : "Today's set");
     if (subject.lang) view.querySelector(".review").lang = subject.lang;
     view.querySelector(".score").textContent = correct + " / " + total;
-    view.querySelector(".score-note").textContent =
+    var note =
       ratio === 1 ? "Perfect. Every answer right." :
       ratio >= 0.8 ? "Great work. Review the few you missed below." :
       ratio >= 0.5 ? "Good effort. Go over the mistakes below." :
       "Keep going. Read through the explanations below.";
+    if (hasPoints) {
+      var pts = questions.reduce(function (sum, q, i) { return sum + (isRight(q, state.picks[i]) ? q.points : 0); }, 0);
+      var max = questions.reduce(function (sum, q) { return sum + q.points; }, 0);
+      note = "Mock exam score: " + pts + " / " + max + ". " + note;
+    }
+    view.querySelector(".score-note").textContent = note;
 
     var review = view.querySelector(".review");
     var misses = 0;
     questions.forEach(function (q, i) {
-      if (state.picks[i] === q.answer) return;
+      if (isRight(q, state.picks[i])) return;
       misses += 1;
       var li = el("li");
       var qEl = el("p", "r-q");
-      qEl.appendChild(sentenceNodes(q.q, q.options[q.answer]));
+      if (q.tag) qEl.appendChild(el("span", "r-tag", q.tag + "  "));
+      qEl.appendChild(q.type === "single_choice" && q.q.indexOf("___") >= 0
+        ? sentenceNodes(q.q, q.options[q.answer]) : sentenceNodes(q.q));
       var aEl = el("p", "r-a");
       aEl.appendChild(document.createTextNode("Your answer: "));
-      aEl.appendChild(el("s", null, q.options[state.picks[i]]));
-      aEl.appendChild(document.createTextNode(" · Correct: " + q.options[q.answer]));
+      aEl.appendChild(el("s", null, answerText(q, state.picks[i])));
+      aEl.appendChild(document.createTextNode(" · Correct: " + correctText(q)));
       li.appendChild(qEl);
       li.appendChild(aEl);
       if (q.explain) li.appendChild(el("p", "r-x", q.explain));
@@ -315,6 +495,7 @@
     });
     onKey = null;
     show(view, subject.name + " results", true);
+    if (subject.math) typeset(app);
   }
 
   /* ---------- Routing ---------- */

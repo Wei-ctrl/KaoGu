@@ -5,8 +5,8 @@ A minimalist, responsive black-and-white study app.
 Subjects: Guowen, English Text, English Grammar, Maths, Physics, Chemistry.
 
 Every subject is multiple choice, one question at a time, 20 questions per day.
-English Grammar (tenses), English Text (U3L2) and Chemistry (僑先部 Ch1–Ch2)
-have content.
+English Grammar (tenses), English Text (U3L2), Maths (僑先部 期中模擬考) and
+Chemistry (僑先部 Ch1–Ch2) have content.
 
 Keyboard: A–D (or 1–4) to answer, Enter for next, Esc to go back.
 
@@ -65,3 +65,18 @@ counts (22 per set):
 Questions mix the unit's two texts, saved in `sources/english-text/`.
 Error-picking questions set `"underline": true`; each option must appear
 exactly once in the sentence so the app can underline and label it.
+
+## Maths
+
+`data/maths/<date>.js` is a mock paper in the 僑先部 數學（第二、三類組）期中模擬考
+format (`sources/maths/midterm-mock-format.md`): 15 單選 + 4 多選 + 5 選填 =
+24 questions, scored 60 / 20 / 20 (all-or-nothing per question).
+
+- `type: "single_choice"` — options `"1"`–`"5"`, `answer` is one key.
+- `type: "multi_choice"` — `answer` is an array of keys; select, then Check.
+- `type: "fill_slots"` — `slots: [{ "n": 20, "v": "-" }, …]`, one digit or minus
+  per slot, shown as `\boxed{20}` in the stem; answered with an on-screen keypad.
+- `figure` holds an inline SVG for graph-reading questions; `points` gives the
+  mock-exam score shown on the results screen.
+- Maths is written as `$…$` LaTeX and rendered with KaTeX (vendored in
+  `vendor/katex/`, so it works offline). `**word**` renders bold + underlined.
