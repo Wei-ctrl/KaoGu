@@ -42,6 +42,14 @@ It checks each set has 20 questions with options A–D, a valid answer, an
 explanation, options that fill every blank, no repeated ids or question stems
 across days, and no answer letter over 40%.
 
+## Automatic daily sets
+
+A scheduled Claude Routine runs every evening (Taiwan time) and follows
+`prompts/daily-routine.md`: it runs `node scripts/missing-days.js`, writes any
+missing sets for today and tomorrow, adds each with
+`node scripts/add-day.js <subject> <date> <questions.json>` (which validates),
+and pushes. If nothing is missing it stops without committing.
+
 ## English Text
 
 `data/english-text/<date>.js` follows the unit's exam format and question
