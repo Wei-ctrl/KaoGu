@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Validate daily question sets: node scripts/check-daily.js [subject]
-// Checks every date in data/<subject>/index.js against prompts/<subject>.md §7–§8 rules.
+// Checks every date (no repeated ids or stems across days) in data/<subject>/index.js against prompts/<subject>.md §7–§8 rules.
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -23,6 +23,7 @@ if (sorted.join() !== dates.join()) fail("index.js dates are not sorted oldest f
 if (new Set(dates).size !== dates.length) fail("index.js has duplicate dates");
 
 const seenIds = new Map();
+const seenStems = new Map();
 for (const date of dates) {
   const file = path.join(dir, date + ".js");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { fail(`${date}: bad date format`); continue; }
@@ -42,6 +43,8 @@ for (const date of dates) {
     else seenIds.set(q.id, date);
     if (!["single_choice", "count_choice"].includes(q.type)) fail(`${where}: type must be single_choice or count_choice (app is multiple choice only)`);
     if (!q.stem) fail(`${where}: missing stem`);
+    else if (seenStems.has(q.stem)) fail(`${where}: same stem as ${seenStems.get(q.stem)}`);
+    else seenStems.set(q.stem, where);
     const keys = Object.keys(q.options || {});
     if (keys.join() !== "A,B,C,D") fail(`${where}: options must be exactly A–D`);
     if (keys.some((k) => !String(q.options[k]).trim())) fail(`${where}: empty option`);

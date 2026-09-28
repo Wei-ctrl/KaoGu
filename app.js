@@ -78,9 +78,9 @@
 
   /* ---------- Daily sets ---------- */
 
+  // Daily sets roll over at midnight Taiwan time (UTC+8, no daylight saving).
   function today() {
-    var d = new Date();
-    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
   }
 
   // Newest date that is not in the future; falls back to the oldest set.
