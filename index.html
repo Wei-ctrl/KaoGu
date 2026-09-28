@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>KaoGu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">KaoGu</a>
+    <button class="back" id="back" type="button" hidden>&larr; Subjects</button>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <template id="tpl-home">
+    <section class="home">
+      <h1>Choose a subject</h1>
+      <p class="lede">Pick where you want to start.</p>
+      <ul class="subjects" id="subjects"></ul>
+    </section>
+  </template>
+
+  <template id="tpl-subject">
+    <section class="subject">
+      <p class="index"></p>
+      <h1 class="title"></h1>
+      <p class="native"></p>
+      <p class="empty">Content for this subject is coming soon.</p>
+    </section>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
