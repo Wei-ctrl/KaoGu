@@ -32,6 +32,38 @@
     </section>
   </template>
 
+  <template id="tpl-quiz">
+    <section class="quiz">
+      <div class="quiz-head">
+        <span class="quiz-subject"></span>
+        <span class="quiz-count" aria-live="polite"></span>
+      </div>
+      <div class="progress" aria-hidden="true"><div class="progress-bar"></div></div>
+      <p class="sentence"></p>
+      <div class="options" role="group" aria-label="Answer choices"></div>
+      <div class="feedback" aria-live="polite" hidden>
+        <p class="verdict"></p>
+        <p class="explain"></p>
+      </div>
+      <button class="btn btn-primary next" type="button" hidden>Next</button>
+    </section>
+  </template>
+
+  <template id="tpl-results">
+    <section class="results">
+      <p class="index"></p>
+      <h1 class="score"></h1>
+      <p class="lede score-note"></p>
+      <div class="actions">
+        <button class="btn btn-primary retry" type="button">Try again</button>
+        <a class="btn" href="#/">All subjects</a>
+      </div>
+      <h2 class="review-title"></h2>
+      <ol class="review"></ol>
+    </section>
+  </template>
+
+  <script src="data/english-grammar.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
