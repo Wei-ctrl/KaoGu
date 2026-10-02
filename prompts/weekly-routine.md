@@ -1,9 +1,15 @@
-# Daily question routine
+# Weekly question routine
 
-A scheduled Claude session runs this every evening (Taiwan time). It writes any
-missing daily sets for **today and tomorrow** so the next day's questions are
-ready before midnight, then pushes them. If nothing is missing it stops without
-committing, so runs cost almost nothing while pre-written sets remain.
+Questions are generated in bulk **once a week** and stored as dated files; the
+app loads one day's set each day (newest set dated on or before today, Taiwan
+time). A scheduled run every **Sunday evening (Taiwan time)** writes everything
+missing from that day through the following Sunday:
+
+- Chemistry, English Grammar, English Text: one set **per day** (7 new days a week).
+- Maths: one mock paper **per week**, dated the Monday it starts.
+
+If nothing is missing the run stops without committing, so an extra run costs
+almost nothing.
 
 The app is multiple choice only. Never change app code (`index.html`, `app.js`,
 `styles.css`) in this routine; only add data files.
@@ -12,24 +18,28 @@ The app is multiple choice only. Never change app code (`index.html`, `app.js`,
 
 1. Work on branch `claude/keen-feynman-fp236t`:
    `git fetch origin claude/keen-feynman-fp236t && git checkout claude/keen-feynman-fp236t && git pull --ff-only origin claude/keen-feynman-fp236t`
-2. `node scripts/missing-days.js` lists `{ subject, date }` pairs still needed.
-   If it prints `[]`, stop here: nothing to do.
+2. `node scripts/missing-days.js` lists `{ subject, date }` pairs still needed
+   (default look-ahead: 8 days). If it prints `[]`, stop here.
 3. For each missing pair, oldest date first:
-   - Read the subject's spec below, and skim the subject's three newest files in
-     `data/<subject>/` to match the format exactly and avoid repeating their
-     questions (same idea with new numbers or wording is fine for chemistry; see
-     rules).
+   - Read the subject's spec below and skim the subject's newest files in
+     `data/<subject>/` to match the format exactly. Within the batch, vary
+     topics, numbers and wording from day to day; never repeat a stem.
    - Write the set to a scratch file as `{ "questions": [...] }` (English Text
-     also has a `"unit"` string).
-   - Recompute every answer yourself before saving (arithmetic, grammar, word
-     choice). Exactly one option must be correct.
+     also has a `"unit"` string; Maths an `"exam"` string).
+   - Recompute every answer before saving (arithmetic, algebra, grammar, word
+     choice). Exactly one option must be correct (multi-select: exactly the
+     listed set). For maths, check calculations with code (e.g. sympy) rather
+     than by eye.
    - Run `node scripts/add-day.js <subject> <date> <file.json>`. It writes the
      data file, adds the date to `data/<subject>/index.js`, and validates. Fix
      anything it reports and run it again until it prints `All sets valid.`
-4. Commit only `data/`: `git add data && git commit -m "Add daily sets for <dates>"`
+4. When every pair is added, commit only `data/` in one commit:
+   `git add data && git commit -m "Add weekly question sets for <first date>–<last date>"`
    (list subjects and dates in the body), then
    `git push origin claude/keen-feynman-fp236t`. If the push is rejected,
    `git pull --rebase origin claude/keen-feynman-fp236t` and push again.
+5. Report in a few lines: which subjects and dates were added, and anything you
+   could not fix.
 
 ## Shared question format
 
@@ -113,3 +123,24 @@ the model exam's sections and question counts exactly (for U3L2: 22 questions):
   texts allow it; write new context sentences every day.
 - Error picking: each option's text must appear exactly once in the sentence.
 - Every blank must accept only one bank item.
+
+## Maths (`maths`, one 24-question mock paper per week)
+
+Follow `sources/maths/midterm-mock-format.md` exactly: 15 單選 (`<1.>`–`<15.>`)
++ 4 多選 (`<16.>`–`<19.>`) + 5 選填 (A–E) = 24 questions, using the slot-by-slot
+blueprint (alternate between the 113 and 114 columns week to week) with new
+functions and numbers. Copy the structure of `data/maths/2026-09-28.js`:
+
+- `chapter` is `一、單選題` / `二、多選題` / `三、選填題`; `number` is `<n.>` or the
+  letter; `given` is that section's Chinese instruction; `points` is 4 / 5 / 4.
+- 單選: `type` `single_choice`, options `"1"`–`"5"`, one answer key; spread
+  answers so no key is over 40% of the 15.
+- 多選: `type` `multi_choice`, `answer` is an array of keys (at least one).
+- 選填: `type` `fill_slots`, `options` null, `slots` `[{ "n": 20, "v": "-" }, …]`
+  numbered consecutively from 20, one digit or `-` each, answers in simplest
+  fraction form; the stem shows each slot as `\boxed{n}`.
+- Write maths as `$…$` LaTeX (KaTeX). English stems with Chinese glosses, e.g.
+  slope(斜率); mark **correct** / **incorrect** with `**…**`.
+- Graph-reading questions put an inline SVG in `figure` (copy the classes
+  `grid`, `axis`, `curve`, `dot`, `open` from the existing figure) and describe
+  it in `aria-label`.

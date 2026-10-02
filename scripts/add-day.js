@@ -19,7 +19,7 @@ if (!Array.isArray(set.questions)) throw new Error("JSON must be { \"questions\"
 
 const key = JSON.stringify(subject);
 fs.writeFileSync(path.join(dir, date + ".js"),
-  `// ${subject} daily set for ${date}. See prompts/daily-routine.md.\n` +
+  `// ${subject} daily set for ${date}. See prompts/weekly-routine.md.\n` +
   `(window.KAOGU_DAILY = window.KAOGU_DAILY || {})[${key}] = window.KAOGU_DAILY[${key}] || {};\n` +
   `window.KAOGU_DAILY[${key}][${JSON.stringify(date)}] = ${JSON.stringify(set, null, 2)};\n`);
 

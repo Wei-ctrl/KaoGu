@@ -42,13 +42,15 @@ It checks each set has 20 questions with options A–D, a valid answer, an
 explanation, options that fill every blank, no repeated ids or question stems
 across days, and no answer letter over 40%.
 
-## Automatic daily sets
+## Weekly generation
 
-A scheduled Claude Routine runs every evening (Taiwan time) and follows
-`prompts/daily-routine.md`: it runs `node scripts/missing-days.js`, writes any
-missing sets for today and tomorrow, adds each with
-`node scripts/add-day.js <subject> <date> <questions.json>` (which validates),
-and pushes. If nothing is missing it stops without committing.
+Questions are generated in bulk once a week and loaded one day at a time. A
+scheduled Claude run every Sunday evening (Taiwan time) follows
+`prompts/weekly-routine.md`: `node scripts/missing-days.js` lists what is
+missing from that day through the next Sunday (a set per day for Chemistry,
+English Grammar and English Text; one Maths mock paper per week, dated Monday),
+each set is added with `node scripts/add-day.js <subject> <date> <questions.json>`
+(which validates), and the week is pushed in one commit.
 
 ## English Text
 
