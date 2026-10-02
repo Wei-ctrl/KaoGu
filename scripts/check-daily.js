@@ -44,8 +44,13 @@ for (const date of dates) {
     else if (seenIds.has(q.id)) fail(`${where}: id also used on ${seenIds.get(q.id)}`);
     else seenIds.set(q.id, date);
     if (!q.stem) fail(`${where}: missing stem`);
-    else if (seenStems.has(q.stem)) fail(`${where}: same stem as ${seenStems.get(q.stem)}`);
-    else seenStems.set(q.stem, where);
+    else {
+      // Maths papers reuse generic stems ("Which of the following options are **wrong**?"),
+      // so there a repeat means the same stem with the same options.
+      const key = subject === "maths" ? q.stem + JSON.stringify(q.options) + JSON.stringify(q.slots || null) : q.stem;
+      if (seenStems.has(key)) fail(`${where}: same question as ${seenStems.get(key)}`);
+      else seenStems.set(key, where);
+    }
     const keys = Object.keys(q.options || {});
     if (q.type === "fill_slots") {
       // 選填: numbered one-character slots, each shown as \boxed{n} in the stem.
