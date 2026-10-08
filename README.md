@@ -10,6 +10,26 @@ Chemistry (僑先部 Ch1–Ch2) have content.
 
 Keyboard: A–D (or 1–4) to answer, Enter for next, Esc to go back.
 
+## Chemistry Tutor
+
+`#/tutor` is a personal AI tutor for 僑先部 化學 (Ch1–Ch2), powered by Claude.
+Open **Chemistry Tutor** on the home screen, paste a Claude API key from
+console.anthropic.com (saved only in this browser's localStorage and sent only to
+Anthropic's API), and ask anything: explain a concept, quiz me one question at a
+time, or check my working. The chat is kept in the browser until **New chat**.
+
+- After answering a Chemistry question, **Ask the tutor about this question**
+  sends the question, your answer, the key and explanation to the tutor.
+- The results screen has **Go over mistakes with the tutor** for the whole set.
+- Settings picks the model: Claude Opus 5.5 (default), Sonnet 5.5 or Haiku 5.5.
+
+The system prompt is `prompts/tutor.md` plus §2, §4 and §5 of
+`prompts/chemistry.md` (topic map, answer-key conventions, reference data), so
+the tutor follows the same conventions as the daily sets. After editing either
+file, run `node scripts/build-tutor-prompt.js` to regenerate
+`tutor/chemistry-prompt.js`. The Anthropic TypeScript SDK is vendored as a
+browser bundle in `vendor/anthropic/`.
+
 ## Daily sets
 
 English Grammar and Chemistry each get a new set of 20 questions every day:

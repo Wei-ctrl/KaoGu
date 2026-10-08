@@ -7,7 +7,8 @@
     { id: "english-grammar", name: "English Grammar", native: "英文 · 文法" },
     { id: "maths",           name: "Maths",           native: "數學", math: true },
     { id: "physics",         name: "Physics",         native: "物理" },
-    { id: "chemistry",       name: "Chemistry",       native: "化學", lang: "zh-Hant" }
+    { id: "chemistry",       name: "Chemistry",       native: "化學", lang: "zh-Hant", tutor: true },
+    { id: "tutor",           name: "Chemistry Tutor", native: "化學 · AI 助教" }
   ];
 
   // Static sets: KAOGU_DATA[id] = [questions]. Daily sets: KAOGU_SETS[id] lists
@@ -185,6 +186,21 @@
     if (item.type === "multi_choice") return answerText(item, item.answer);
     if (item.type === "fill_slots") return answerText(item, item.slots.map(function (s) { return s.v; }));
     return label(item, item.answer) + " " + item.options[item.answer];
+  }
+
+  // Plain-text copy of a question and the student's answer, for the tutor.
+  function questionText(item, pick) {
+    var lines = [];
+    if (item.tag) lines.push("（" + item.tag + "）");
+    if (item.given) lines.push(item.given);
+    lines.push("題目：" + item.q.replace(/\*\*/g, ""));
+    if (item.type !== "fill_slots") {
+      lines.push("選項：" + item.options.map(function (o, i) { return "(" + item.keys[i] + ") " + o; }).join("  "));
+    }
+    lines.push("我的答案：" + (pick == null ? "(沒作答)" : answerText(item, pick)));
+    lines.push("正確答案：" + correctText(item));
+    if (item.explain) lines.push("解析：" + item.explain);
+    return lines.join("\n");
   }
 
   /* ---------- Quiz ---------- */
@@ -405,6 +421,14 @@
         feedback.querySelector(".terms").textContent = item.terms
           .map(function (t) { return t.zh + " " + t.en; }).join(" · ");
       }
+      if (subject.tutor && window.KaoGuTutor) {
+        var askBtn = feedback.querySelector(".ask-tutor");
+        askBtn.hidden = false;
+        askBtn.addEventListener("click", function () {
+          window.KaoGuTutor.ask((right ? "我答對了，但想更了解這一題：" : "我這一題答錯了，請幫我弄懂：") +
+            "\n\n" + questionText(item, pick) + "\n\n請告訴我錯在哪裡（如果有），一步一步講解，最後出一題類似的題目給我練習。");
+        });
+      }
       feedback.hidden = false;
       if (subject.math) typeset(feedback);
       nextBtn.hidden = false;
@@ -490,6 +514,18 @@
     if (misses) title.textContent = "Mistakes (" + misses + ")";
     else { title.remove(); review.remove(); }
 
+    if (misses && subject.tutor && window.KaoGuTutor) {
+      var askBtn = view.querySelector(".ask-tutor");
+      askBtn.hidden = false;
+      askBtn.addEventListener("click", function () {
+        var wrong = questions.map(function (q, i) { return isRight(q, state.picks[i]) ? null : questionText(q, state.picks[i]); })
+          .filter(Boolean);
+        window.KaoGuTutor.ask("我今天的化學練習答錯了 " + wrong.length + " 題。請先找出我錯誤的共同原因，" +
+          "再從最重要的觀念開始，一次一題帶我複習：\n\n" +
+          wrong.map(function (t, i) { return "【第 " + (i + 1) + " 題】\n" + t; }).join("\n\n"));
+      });
+    }
+
     view.querySelector(".retry").addEventListener("click", function () {
       startQuiz(subject, questions, state.date);
     });
@@ -498,12 +534,25 @@
     if (subject.math) typeset(app);
   }
 
+  /* ---------- Chemistry Tutor (tutor/tutor.js) ---------- */
+
+  function renderTutor(subject) {
+    if (!window.KaoGuTutor) return renderMessage(subject, "The tutor didn't load. Reload the page and try again.");
+    var view = window.KaoGuTutor.render({
+      tpl: tpl,
+      typeset: typeset,
+      setKeys: function (fn) { onKey = fn; }
+    });
+    show(view, subject.name, true);
+  }
+
   /* ---------- Routing ---------- */
 
   function route() {
     var id = location.hash.replace(/^#\/?/, "");
     var subject = SUBJECTS.find(function (s) { return s.id === id; });
     if (!subject) renderHome();
+    else if (subject.id === "tutor") renderTutor(subject);
     else if (SETS[subject.id] && SETS[subject.id].length) {
       loadDaily(subject).then(function (set) {
         if (location.hash.replace(/^#\/?/, "") === subject.id) startQuiz(subject, set.questions, set.date);

@@ -1,0 +1,1 @@
+@anthropic-ai/sdk 0.132.1, bundled with esbuild as an IIFE that sets window.Anthropic.

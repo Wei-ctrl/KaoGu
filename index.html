@@ -68,6 +68,7 @@
         <p class="verdict"></p>
         <p class="explain"></p>
         <p class="terms"></p>
+        <button class="link ask-tutor" type="button" hidden>Ask the tutor about this question &rarr;</button>
       </div>
       <button class="btn btn-primary next" type="button" hidden>Next</button>
     </section>
@@ -81,9 +82,50 @@
       <div class="actions">
         <button class="btn btn-primary retry" type="button">Try again</button>
         <a class="btn" href="#/">All subjects</a>
+        <button class="btn ask-tutor" type="button" hidden>Go over mistakes with the tutor</button>
       </div>
       <h2 class="review-title"></h2>
       <ol class="review"></ol>
+    </section>
+  </template>
+
+  <template id="tpl-tutor">
+    <section class="tutor" lang="zh-Hant">
+      <div class="tutor-head">
+        <div>
+          <p class="index" lang="en">Chemistry · 化學</p>
+          <h1 lang="en">Tutor</h1>
+        </div>
+        <div class="tutor-tools" lang="en">
+          <button class="link tutor-new" type="button">New chat</button>
+          <button class="link tutor-settings" type="button">Settings</button>
+        </div>
+      </div>
+
+      <form class="tutor-setup" lang="en" hidden>
+        <label class="field">
+          <span>Claude API key</span>
+          <input class="tutor-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <select class="tutor-model"></select>
+        </label>
+        <p class="hint">Your key is saved only in this browser and sent only to Anthropic's API. Create one at console.anthropic.com → API keys. Each message is billed to that account.</p>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Save</button>
+          <button class="btn tutor-forget" type="button">Forget key</button>
+        </div>
+      </form>
+
+      <ol class="chat" aria-live="polite"></ol>
+      <div class="starters" lang="en"></div>
+      <p class="tutor-status" lang="en" aria-live="polite"></p>
+
+      <form class="composer">
+        <textarea class="composer-input" rows="1" placeholder="Ask a question… 問化學問題" aria-label="Message"></textarea>
+        <button class="btn btn-primary composer-send" type="submit" lang="en">Send</button>
+      </form>
     </section>
   </template>
 
@@ -93,6 +135,9 @@
   <script src="data/english-text/index.js"></script>
   <script src="data/english-grammar/index.js"></script>
   <script src="data/chemistry/index.js"></script>
+  <script src="vendor/anthropic/sdk.min.js" defer></script>
+  <script src="tutor/chemistry-prompt.js"></script>
+  <script src="tutor/tutor.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
