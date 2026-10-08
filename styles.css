@@ -419,3 +419,109 @@ h1 {
 .katex { font-size: 1.05em; }
 .key-word u { text-underline-offset: 3px; }
 .option.is-missed { border-width: 3px; font-weight: 600; }
+
+/* Text-style buttons */
+.link {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.link:hover { text-decoration-thickness: 2px; }
+.feedback .ask-tutor { margin-top: 14px; }
+
+/* Chemistry Tutor */
+.tutor { max-width: 720px; margin: 0 auto; }
+.tutor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.tutor-head .index { color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; }
+.tutor-tools { display: flex; gap: 20px; }
+
+.tutor-setup { margin-top: 24px; padding: 20px; border: 1px solid var(--line); }
+.field { display: grid; gap: 6px; margin-bottom: 14px; font-weight: 600; font-size: 0.95rem; }
+.field input,
+.field select {
+  min-height: 48px;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  min-width: 0;
+}
+.hint { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+.tutor-setup .actions { margin-top: 16px; }
+
+.chat { list-style: none; }
+.msg { padding: 20px 0; border-bottom: 1px solid color-mix(in srgb, var(--fg) 15%, transparent); }
+.msg-who {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.msg-body { line-height: 1.7; overflow-wrap: anywhere; }
+.msg-user .msg-body { white-space: pre-wrap; }
+.msg-body p + p, .msg-body p + ul, .msg-body p + ol,
+.msg-body ul + p, .msg-body ol + p { margin-top: 10px; }
+.msg-body ul, .msg-body ol { padding-left: 1.4em; margin-top: 6px; }
+.msg-body li + li { margin-top: 4px; }
+.msg.is-streaming .msg-body:empty::after { content: "…"; color: var(--muted); }
+
+.starters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.chip {
+  min-height: 40px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.chip:hover, .chip:focus-visible { background: var(--fg); color: var(--bg); }
+
+.tutor-status { min-height: 1.4em; margin-top: 12px; color: var(--muted); font-size: 0.9rem; }
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 0 16px;
+  background: var(--bg);
+}
+.composer-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  max-height: 240px;
+  padding: 14px 12px;
+  font: inherit;
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  resize: none;
+}
+.composer-send { flex: none; padding: 0 22px; }
